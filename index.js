@@ -11,6 +11,6 @@ app.get("/users", users.getAllUsers);
 app.get("/user/:id", users.getUser);
 app.post("/add-user", users.createUser);
 app.delete("/delete-user/:id", users.deleteUser);
-
+app.post("/signup", users.createUser)
 var port = (3000);
 app.listen(port, ()=> console.log(`listening on port ${port}`));
