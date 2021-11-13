@@ -80,24 +80,55 @@ exports.getAllUsers = function (req, res) {
 
 // Create a user and validate input
 exports.createUser = async function (req, res) {
-    const objectSchema = Joi.object.keys({
+    const objectSchema = Joi.object({
         fullName: Joi.string().min(3).required(),
         email: Joi.string().email({ minDomainSegments : 2 }).required(),
         password: Joi.string().min(8).required(),
-        repeat_password: Joi.ref("password")
+        Cpassword: Joi.ref("password")
     });
-
-    let { fullName, email, password, repeat_password} = req.body;
-    console.log(password)
 
     try{
         const data = await objectSchema.validateAsync(req.body);
         let {fullName, email, password} = data;
         password = bcrypt.hashSync(password, 10);
-        console.log(password)
-        console.log("Vhido")
-        const user = {}
+        console.log(password);
+        const user = {
+            id: uuid(),
+            fullName,
+            email,
+            password
+        }
+    db.push(user);
+    res.json({okay: true, message: "User created successfully"})
+
     }   catch (err) {
-        console.log(err.message)
+        console.log(err)
+        res.status(422).json({okay: false, message: err.details[0].message})
     };
 };
+
+exports.signIn = async(req, res) => {
+    const object = Joi.object({
+        email: Joi.string().email({minDomainSegments: 2}).required,
+        password:Joi.string().required()
+    });
+
+    try {
+        const data = await object.validateAsync(req.body);
+        const { email, password } = data;
+        db.find(user =>{
+            if (user.email == email){
+                const isPassword = bcrypt.compareSync(password, user.password);
+                if (isPassword){
+                    const token = jwt.sign({id: user.id}, "my_secret", {expiresIn:"2d"});
+                    console.log(token);
+                    res.status(200).json({okay: true, token, message: "Logged in successfully"})
+                } else {
+                    res.status(404).json({ okay: false, message: "Incorrect Password"})
+                }
+            } else res.status(404).json({ okay: false, message: " User not found"})
+        })
+    } catch (err) {
+        res.status(422).json({ okay: false, message: err.details[0].message })
+    }
+}
