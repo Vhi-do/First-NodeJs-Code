@@ -1,3 +1,3 @@
 exports.userDatabase = []
 
-exports.contactDatabase = []
+exports.profileDatabase = []
