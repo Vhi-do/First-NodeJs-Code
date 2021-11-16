@@ -1,5 +1,5 @@
 const { userDatabase, profileDatabase } = require("../model/database");
-const db = userDatabase;
+const accountDb = userDatabase;
 const Joi = require("joi");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
@@ -107,9 +107,9 @@ exports.createUser = async function(req, res) {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
-        const profile = {id: uuid(), fullName, email, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()};
+        const profile = {id: uuid, fullName, email, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()};
         profileDatabase.push(profile);
-        db.push(user);
+        accountDb.push(user);
         res.json({ okay: true, message: "User created successfully" })
 
     } catch (err) {
@@ -129,7 +129,7 @@ exports.signIn = async(req, res) => {
         // const users = user => log(user);
         // db.forEach(users);
         const { email, password } = data;
-        db.find(user => {
+        accountDb.find(user => {
             if (user.email == email) {
                 const isPassword = bcrypt.compareSync(password, user.password);
                 if (isPassword) {
@@ -147,6 +147,33 @@ exports.signIn = async(req, res) => {
 }
 
 exports.getProfile = async(req,res) => {
+    const email = res.locals.userEmail;
+    console.log(email)
+
+    const account = accountDb.find(data => data.email == email);
+    if (account) {
+        profileDatabase.find(profile => {
+            if (profile.email == account.email) {
+                profile.accountid = account.id;
+                profile.status = account.status;
+
+                res.status(200).json({ okay: true, data: profile });
+        }else {
+            res.status(404).json({ okay: false, message: "User profile not found" })
+        }
+        })
+    } else res.status(404).json({ okay: false, message: " User account not found" });
     const token = req.headers.authorization
     console.log(token)
+}
+
+exports.updatedProfile = async(req, res) => {
+    const email = req.userEmail;
+    const user = accountDb.find(account => account.email == email);
+    if (user) {
+        profileDatabase.find(profile => {
+            const updateProfile = {...profile, ...req.body};
+            res.status(201).json({ okay: true, data: updateProfile });
+        });
+    } else res.status(404).json({ okay: false, message: "User account not found" })
 }
